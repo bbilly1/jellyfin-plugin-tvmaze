@@ -19,7 +19,7 @@ namespace Jellyfin.Plugin.TvMaze
         /// <summary>
         /// Gets the provider id.
         /// </summary>
-        public const string ProviderId = "TVmaze";
+        public const string ProviderId = "TvMaze";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TvMazePlugin"/> class.
