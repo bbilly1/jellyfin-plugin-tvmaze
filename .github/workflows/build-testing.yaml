@@ -28,7 +28,7 @@ jobs:
         uses: oddstr13/jellyfin-plugin-repository-manager@v1.1.1
         with:
           dotnet-target: net9.0
-          version: 13.1.0.${{ github.run_number }}
+          version: 14.1.0.${{ github.run_number }}
 
       - name: Upload Plugin Package
         uses: actions/upload-artifact@v7
