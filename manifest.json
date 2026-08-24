@@ -1,0 +1,21 @@
+[
+    {
+        "guid": "a4a488d0-17a3-4919-8d82-7f3de4f6b209",
+        "name": "TVmaze",
+        "description": "Get TV metadata from TVmaze\n",
+        "overview": "Get TV metadata from TVmaze",
+        "owner": "jellyfin",
+        "category": "MoviesAndShows",
+        "versions": [
+            {
+                "version": "14.1.0.0",
+                "changelog": "- Revert \"Update dependency Microsoft.Extensions.Http to v10\" (#62) @Shadowghost\n\n### Dependency updates ###\n- Update dependency Microsoft.Extensions.Http to 9.0.11 (#52) @[renovate[bot]](https://github.com/apps/renovate)\n- Update dependency Microsoft.Extensions.Http to v10 (#59) @[renovate[bot]](https://github.com/apps/renovate)",
+                "targetAbi": "10.11.8.0",
+                "sourceUrl": "https://github.com/bbilly1/jellyfin-plugin-tvmaze/releases/download/v14.1.0.0/tvmaze_14.1.0.0.zip",
+                "checksum": "790ef6432f3ab793dc126baca604cc76",
+                "timestamp": "2026-08-24T15:49:10Z"
+            }
+        ],
+        "imageUrl": "https://repo.jellyfin.org/releases/plugin/images/jellyfin-plugin-tvmaze.png"
+    }
+]
