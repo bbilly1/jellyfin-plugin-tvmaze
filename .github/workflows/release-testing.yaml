@@ -1,0 +1,143 @@
+name: '🚀 Release Testing Plugin'
+
+run-name: 'Release TVmaze ${{ inputs.version }}'
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Plugin version (for example: 14.1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-testing-plugin
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Testing Branch
+        uses: actions/checkout@v7
+        with:
+          ref: testing
+          fetch-depth: 0
+
+      - name: Validate Release Version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ ! "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version must contain four numeric components, for example 14.1.0.0." >&2
+            exit 1
+          fi
+
+          release_tag="v${RELEASE_VERSION}"
+          if gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release ${release_tag} already exists." >&2
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${release_tag}" >/dev/null 2>&1; then
+            echo "Tag ${release_tag} already exists." >&2
+            exit 1
+          fi
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Checkout Repository Manager
+        uses: actions/checkout@v7
+        with:
+          repository: oddstr13/jellyfin-plugin-repository-manager
+          ref: v1.1.1
+          path: .tools/jprm
+
+      - name: Build and Package Plugin
+        id: package
+        uses: oddstr13/jellyfin-plugin-repository-manager@v1.1.1
+        with:
+          dotnet-target: net9.0
+          version: ${{ inputs.version }}
+
+      - name: Prepare Release Metadata
+        id: release
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          ARTIFACT_PATH: ${{ steps.package.outputs.artifact }}
+        run: |
+          artifact_path="$(realpath "$ARTIFACT_PATH")"
+          artifact_name="$(basename "$artifact_path")"
+          release_tag="v${RELEASE_VERSION}"
+          source_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${release_tag}/${artifact_name}"
+          source_sha="$(git rev-parse HEAD)"
+
+          unzip -p "$artifact_path" meta.json | jq -r '.changelog' > "$RUNNER_TEMP/release-notes.md"
+
+          echo "artifact_path=${artifact_path}" >> "$GITHUB_OUTPUT"
+          echo "release_tag=${release_tag}" >> "$GITHUB_OUTPUT"
+          echo "source_url=${source_url}" >> "$GITHUB_OUTPUT"
+          echo "source_sha=${source_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Update Plugin Repository Manifest
+        env:
+          ARTIFACT_PATH: ${{ steps.release.outputs.artifact_path }}
+          SOURCE_URL: ${{ steps.release.outputs.source_url }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          plugin_repo_dir="$RUNNER_TEMP/plugin-repo"
+
+          if git ls-remote --exit-code --heads origin plugin-repo >/dev/null 2>&1; then
+            git fetch origin plugin-repo:refs/remotes/origin/plugin-repo
+            git worktree add -B plugin-repo "$plugin_repo_dir" origin/plugin-repo
+          else
+            git worktree add -b plugin-repo "$plugin_repo_dir" HEAD
+            git -C "$plugin_repo_dir" rm -r .
+            echo '[]' > "$plugin_repo_dir/manifest.json"
+          fi
+
+          if [[ ! -f "$plugin_repo_dir/manifest.json" ]]; then
+            echo '[]' > "$plugin_repo_dir/manifest.json"
+          fi
+
+          python3 .tools/jprm/jprm/__init__.py repo add \
+            --plugin-url "$SOURCE_URL" \
+            "$plugin_repo_dir/manifest.json" \
+            "$ARTIFACT_PATH"
+
+          git -C "$plugin_repo_dir" config user.name 'github-actions[bot]'
+          git -C "$plugin_repo_dir" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C "$plugin_repo_dir" add --all
+          git -C "$plugin_repo_dir" commit -m "Add TVmaze ${RELEASE_VERSION}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_PATH: ${{ steps.release.outputs.artifact_path }}
+          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
+          SOURCE_SHA: ${{ steps.release.outputs.source_sha }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "$RELEASE_TAG" "$ARTIFACT_PATH" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$SOURCE_SHA" \
+            --title "TVmaze ${RELEASE_VERSION}" \
+            --notes-file "$RUNNER_TEMP/release-notes.md"
+
+      - name: Publish Plugin Repository Manifest
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          plugin_repo_dir="$RUNNER_TEMP/plugin-repo"
+          git -C "$plugin_repo_dir" push origin HEAD:plugin-repo
+
+          repository_url="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/plugin-repo/manifest.json"
+          echo "Released TVmaze ${RELEASE_VERSION}." >> "$GITHUB_STEP_SUMMARY"
+          echo "Jellyfin repository URL: ${repository_url}" >> "$GITHUB_STEP_SUMMARY"
