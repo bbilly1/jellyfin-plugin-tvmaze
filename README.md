@@ -1,3 +1,14 @@
+> [!NOTE]
+> This repository is a testing fork of the [official Jellyfin TVmaze plugin](https://github.com/jellyfin/jellyfin-plugin-tvmaze). It provides interim builds with minimal fixes that have not yet reached an official release. This fork may be removed once upstream is catching up.
+>
+> Packaged plugin ZIPs can be downloaded directly from this fork's [GitHub releases](https://github.com/bbilly1/jellyfin-plugin-tvmaze/releases). Alternatively, add the following custom plugin repository in **Dashboard → Plugins → Repositories**:
+>
+> ```text
+> https://raw.githubusercontent.com/bbilly1/jellyfin-plugin-tvmaze/plugin-repo/manifest.json
+> ```
+>
+> TVmaze will still appear as a single catalog entry because the fork retains the official plugin GUID. Open its revision history and install the desired fork version. After installation or an update, Docker deployments require a complete container restart (for example, `docker restart jellyfin`); an application-level restart may not reload the plugin assemblies.
+
 <h1 align="center">Jellyfin TV Maze Plugin</h1>
 <h3 align="center">Part of the <a href="https://jellyfin.org">Jellyfin Project</a></h3>
 
