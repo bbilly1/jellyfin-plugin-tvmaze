@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Plugin version (for example: 14.1.0.0)'
+        description: 'Plugin version (for example: 14.2.0.0)'
         required: true
         type: string
 
@@ -33,7 +33,7 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version }}
         run: |
           if [[ ! "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Version must contain four numeric components, for example 14.1.0.0." >&2
+            echo "Version must contain four numeric components, for example 14.2.0.0." >&2
             exit 1
           fi
 
@@ -51,7 +51,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Checkout Repository Manager
         uses: actions/checkout@v7
@@ -64,7 +64,7 @@ jobs:
         id: package
         uses: oddstr13/jellyfin-plugin-repository-manager@v1.1.1
         with:
-          dotnet-target: net9.0
+          dotnet-target: net10.0
           version: ${{ inputs.version }}
 
       - name: Prepare Release Metadata
